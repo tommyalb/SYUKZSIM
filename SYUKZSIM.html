@@ -1,0 +1,1782 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<link rel="icon" type="image/x-icon" href="icon.ico">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Syukz simulation</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Share+Tech+Mono&family=Exo+2:wght@300;400;600&display=swap');
+
+:root {
+  --bg: #020b14;
+  --bg2: #040f1c;
+  --panel: rgba(4,20,40,0.85);
+  --panel-border: rgba(0,200,255,0.18);
+  --cyan: #00d4ff;
+  --cyan2: #00ffe7;
+  --blue: #0a5fff;
+  --red: #ff2442;
+  --green: #00ff88;
+  --yellow: #ffd600;
+  --orange: #ff7700;
+  --text: #cce8ff;
+  --text-dim: #4a7a99;
+  --grid: rgba(0,180,255,0.04);
+  --glow-cyan: 0 0 20px rgba(0,212,255,0.5), 0 0 40px rgba(0,212,255,0.2);
+  --glow-green: 0 0 20px rgba(0,255,136,0.5), 0 0 40px rgba(0,255,136,0.2);
+  --glow-yellow: 0 0 20px rgba(255,214,0,0.5), 0 0 40px rgba(255,214,0,0.2);
+  --glow-red: 0 0 20px rgba(255,36,66,0.5), 0 0 40px rgba(255,36,66,0.2);
+}
+
+* { margin:0; padding:0; box-sizing:border-box; }
+
+body {
+  font-family: 'Exo 2', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+body::before {
+  content:'';
+  position:fixed;
+  inset:0;
+  background-image:
+    linear-gradient(var(--grid) 1px, transparent 1px),
+    linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+  background-size: 40px 40px;
+  pointer-events:none;
+  z-index:0;
+}
+
+body::after {
+  content:'';
+  position:fixed;
+  inset:0;
+  background: repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,0.03) 2px,rgba(0,0,0,0.03) 4px);
+  pointer-events:none;
+  z-index:0;
+}
+
+.wrapper { position:relative; z-index:1; display:flex; flex-direction:column; min-height:100vh; }
+
+header {
+  display:flex; align-items:center; justify-content:space-between;
+  padding: 10px 20px;
+  background: rgba(0,10,25,0.95);
+  border-bottom: 1px solid var(--panel-border);
+  backdrop-filter: blur(10px);
+  position: sticky; top:0; z-index:100;
+}
+
+.hdr-logo {
+  font-family: 'Orbitron', monospace;
+  font-size: 18px; font-weight: 900;
+  letter-spacing: 4px;
+  color: var(--cyan);
+  text-shadow: var(--glow-cyan);
+}
+.hdr-logo span { color: var(--cyan2); }
+
+.hdr-center { display:flex; align-items:center; gap:24px; }
+
+.sys-status {
+  display:flex; align-items:center; gap:8px;
+  font-family:'Share Tech Mono', monospace;
+  font-size:12px;
+}
+.status-dot {
+  width:8px; height:8px; border-radius:50%;
+  background: var(--green);
+  box-shadow: var(--glow-green);
+  animation: pulse-dot 1.5s infinite;
+}
+@keyframes pulse-dot {
+  0%,100%{opacity:1;transform:scale(1)}
+  50%{opacity:0.5;transform:scale(1.3)}
+}
+
+.hdr-time {
+  font-family:'Orbitron',monospace; font-size:16px;
+  color: var(--cyan); letter-spacing:2px;
+}
+
+.hdr-right { display:flex; gap:12px; align-items:center; }
+
+.mode-badge {
+  font-family:'Share Tech Mono',monospace; font-size:11px;
+  padding: 4px 10px; border-radius:3px;
+  border: 1px solid var(--cyan);
+  color: var(--cyan);
+  text-transform:uppercase; letter-spacing:1px;
+  background: rgba(0,212,255,0.08);
+}
+
+.mode-badge.smart {
+  border-color: var(--green);
+  color: var(--green);
+  background: rgba(0,255,136,0.08);
+  animation: badge-pulse 2s infinite;
+}
+
+@keyframes badge-pulse {
+  0%,100%{box-shadow:none}
+  50%{box-shadow:var(--glow-green)}
+}
+
+.main-grid {
+  display:grid;
+  grid-template-columns: 280px 1fr 340px;
+  grid-template-rows: 1fr auto;
+  gap:0;
+  flex:1;
+  min-height: calc(100vh - 52px);
+}
+
+.panel {
+  background: var(--panel);
+  border: 1px solid var(--panel-border);
+  backdrop-filter: blur(12px);
+  padding: 16px;
+}
+
+.panel-title {
+  font-family:'Orbitron',monospace; font-size:10px;
+  font-weight:700; letter-spacing:3px; text-transform:uppercase;
+  color: var(--cyan); margin-bottom:14px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--panel-border);
+  display:flex; align-items:center; gap:8px;
+}
+.panel-title::before {
+  content:''; display:block; width:3px; height:12px;
+  background: var(--cyan);
+  box-shadow: var(--glow-cyan);
+}
+
+.left-panel {
+  border-right: 1px solid var(--panel-border);
+  display:flex; flex-direction:column; gap:14px;
+  overflow-y:auto;
+  padding: 16px;
+}
+
+.lane-control {
+  background: rgba(0,30,60,0.6);
+  border: 1px solid var(--panel-border);
+  border-radius:4px;
+  padding: 10px;
+}
+
+.lane-header {
+  display:flex; justify-content:space-between; align-items:center;
+  margin-bottom:8px;
+}
+.lane-label {
+  font-family:'Orbitron',monospace; font-size:11px;
+  font-weight:700; letter-spacing:2px;
+  display:flex; align-items:center; gap:6px;
+}
+.lane-indicator {
+  width:10px; height:10px; border-radius:50%;
+  background: var(--red);
+  box-shadow: 0 0 8px var(--red);
+}
+.lane-indicator.green { background:var(--green); box-shadow:0 0 8px var(--green); }
+.lane-indicator.yellow { background:var(--yellow); box-shadow:0 0 8px var(--yellow); }
+
+.lane-count {
+  font-family:'Share Tech Mono',monospace; font-size:18px;
+  color: var(--cyan); font-weight:bold;
+}
+
+.lane-slider-row { display:flex; align-items:center; gap:8px; margin-bottom:6px; }
+.lane-slider {
+  flex:1; -webkit-appearance:none;
+  height:4px; border-radius:2px;
+  background: rgba(0,212,255,0.2);
+  outline:none;
+}
+.lane-slider::-webkit-slider-thumb {
+  -webkit-appearance:none; width:14px; height:14px;
+  border-radius:50%; background:var(--cyan);
+  box-shadow:var(--glow-cyan); cursor:pointer;
+}
+
+.density-bar { height:4px; border-radius:2px; margin-top:4px; overflow:hidden; background:rgba(255,255,255,0.06); }
+.density-fill { height:100%; border-radius:2px; transition:width 0.3s; }
+.density-fill.low { background:var(--green); }
+.density-fill.med { background:var(--yellow); }
+.density-fill.high { background:var(--red); }
+
+.density-label {
+  font-family:'Share Tech Mono',monospace; font-size:10px;
+  margin-top:3px; text-transform:uppercase; letter-spacing:1px;
+}
+.density-label.low { color:var(--green); }
+.density-label.med { color:var(--yellow); }
+.density-label.high { color:var(--red); }
+
+.stats-mini { display:grid; grid-template-columns:1fr 1fr; gap:6px; }
+.stat-mini {
+  background:rgba(0,20,45,0.7);
+  border:1px solid var(--panel-border);
+  border-radius:3px; padding:6px 8px;
+  text-align:center;
+}
+.stat-mini-val {
+  font-family:'Orbitron',monospace; font-size:14px;
+  color:var(--cyan); font-weight:700;
+}
+.stat-mini-lbl {
+  font-size:9px; color:var(--text-dim); letter-spacing:1px; text-transform:uppercase; margin-top:2px;
+}
+
+.center-panel {
+  display:flex; flex-direction:column;
+  background: rgba(2,8,18,0.7);
+  position: relative;
+}
+
+.intersection-container {
+  flex:1; display:flex; align-items:center; justify-content:center;
+  padding:20px; position:relative;
+}
+
+.intersection {
+  position:relative; width:480px; height:480px;
+  flex-shrink:0;
+  overflow:visible;
+  border-radius:8px;
+}
+
+.road-h, .road-v {
+  position:absolute;
+  background: #111a22;
+  border: 1px solid rgba(0,180,255,0.1);
+}
+.road-h { top:50%; left:0; width:100%; height:120px; transform:translateY(-50%); }
+.road-v { left:50%; top:0; height:100%; width:120px; transform:translateX(-50%); }
+
+.road-h::before, .road-v::before {
+  content:''; position:absolute;
+  background: repeating-linear-gradient(
+    90deg, transparent, transparent 20px, rgba(255,220,0,0.3) 20px, rgba(255,220,0,0.3) 36px
+  );
+}
+.road-h::before { top:50%; left:0; width:100%; height:2px; transform:translateY(-50%); }
+.road-v::before {
+  content:''; left:50%; top:0; width:2px; height:100%; transform:translateX(-50%);
+  background: repeating-linear-gradient(
+    180deg, transparent, transparent 20px, rgba(255,220,0,0.3) 20px, rgba(255,220,0,0.3) 36px
+  );
+}
+
+.road-h::after {
+  content:'';
+  position:absolute; inset:0;
+  border-top: 2px solid rgba(0,212,255,0.15);
+  border-bottom: 2px solid rgba(0,212,255,0.15);
+}
+
+.intersect-box {
+  position:absolute;
+  top:50%; left:50%;
+  width:120px; height:120px;
+  transform:translate(-50%,-50%);
+  background: #0d1a26;
+  border: 1px solid rgba(0,212,255,0.2);
+  z-index:2;
+}
+
+.tlight {
+  position:absolute; z-index:10;
+  display:flex; flex-direction:column; gap:4px;
+  align-items:center;
+}
+.tlight.north { top:10px; left:50%; transform:translateX(-90px); }
+.tlight.south { bottom:10px; left:50%; transform:translateX(65px); }
+.tlight.east  { right:10px; top:50%; transform:translateY(-128px); }
+.tlight.west  { left:10px; top:50%; transform:translateY(65px); }
+
+.tlight-box {
+  background:#0a0e14; border:1px solid rgba(0,200,255,0.25);
+  border-radius:4px; padding:5px;
+  display:flex; flex-direction:column; gap:5px;
+  align-items:center;
+}
+.tlight-bulb {
+  width:14px; height:14px; border-radius:50%;
+  background:#111;
+  transition: background 0.3s, box-shadow 0.3s;
+}
+.tlight-bulb.r.on { background:var(--red); box-shadow:var(--glow-red); }
+.tlight-bulb.y.on { background:var(--yellow); box-shadow:var(--glow-yellow); }
+.tlight-bulb.g.on { background:var(--green); box-shadow:var(--glow-green); }
+
+.tlight-label {
+  font-family:'Orbitron',monospace; font-size:8px; letter-spacing:1px;
+  color:var(--text-dim); margin-top:3px;
+}
+
+.timer-ring {
+  position:absolute; z-index:10;
+  width:40px; height:40px;
+}
+.timer-ring.north { top:10px; left:50%; transform:translateX(-50%); }
+.timer-ring.south { bottom:10px; left:50%; transform:translateX(-50%); }
+.timer-ring.east { right:10px; top:50%; transform:translateY(-50%); }
+.timer-ring.west { left:10px; top:50%; transform:translateY(-50%); }
+
+.timer-ring svg { transform:rotate(-90deg); width:40px; height:40px; }
+.timer-ring circle.bg { stroke:rgba(0,212,255,0.1); fill:none; stroke-width:4; }
+.timer-ring circle.fill { stroke:var(--cyan); fill:none; stroke-width:4; stroke-linecap:round; transition:stroke-dashoffset 1s linear; }
+.timer-ring-txt {
+  position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
+  font-family:'Orbitron',monospace; font-size:11px; color:var(--cyan); font-weight:700;
+}
+
+.queue-zone {
+  position:absolute; z-index:3;
+  display:flex; align-items:center; justify-content:flex-start;
+  overflow:hidden;
+}
+.queue-zone.north { top:0; left:calc(50% - 60px); width:60px; height:calc(50% - 60px); flex-direction:column-reverse; }
+.queue-zone.south { bottom:0; left:50%; width:60px; height:calc(50% - 60px); flex-direction:column; }
+.queue-zone.east  { right:0; top:calc(50% - 60px); height:60px; width:calc(50% - 60px); flex-direction:row; }
+.queue-zone.west  { left:0; top:50%; height:60px; width:calc(50% - 60px); flex-direction:row-reverse; }
+
+.vehicle {
+  position:relative;
+  flex-shrink:0;
+}
+
+.vehicle.ns { width:22px; height:36px; margin:2px auto; }
+.vehicle.ew { width:36px; height:22px; margin:auto 2px; }
+.vehicle svg { display:block; }
+
+.lane-overlay {
+  position: absolute; z-index: 10;
+  background: rgba(2,10,25,0.85); border: 1px solid var(--panel-border);
+  border-radius: 4px; padding: 4px 6px;
+  font-family: 'Share Tech Mono', monospace;
+  backdrop-filter: blur(4px);
+  width: 36px;
+  text-align: center;
+}
+
+/* Pushes the counters completely outside the simulation container boundaries */
+.lane-overlay.north { top: -30px;    left: calc(50% - 48px); transform: none; }
+.lane-overlay.south { bottom: -30px; left: calc(50% + 12px); transform: none; }
+.lane-overlay.east  { right: -42px;  top: calc(50% - 48px); transform: none; }
+.lane-overlay.west  { left: -42px;   top: calc(50% + 12px); transform: none; }
+
+.lo-count { font-size:16px; color:var(--cyan); font-weight:bold; }
+
+.emergency-banner {
+  display:none;
+  position:absolute; 
+  top:20px;
+  left:50%; transform:translateX(-50%);
+  z-index:50;
+  background: rgba(255,20,50,0.15);
+  border: 1px solid var(--red);
+  padding: 6px 18px;
+  border-radius:3px;
+  font-family:'Orbitron',monospace; font-size:11px; letter-spacing:3px;
+  color: var(--red);
+  text-shadow: var(--glow-red);
+  animation: emg-flash 0.5s infinite;
+}
+.emergency-banner.active { display:block; }
+@keyframes emg-flash {
+  0%,100%{opacity:1}50%{opacity:0.3}
+}
+
+.ai-ticker {
+  text-align:center; padding:8px;
+  font-family:'Share Tech Mono',monospace; font-size:11px;
+  color: var(--cyan2);
+  border-top: 1px solid var(--panel-border);
+  letter-spacing:2px;
+  background: rgba(0,255,231,0.03);
+}
+.ai-dot { display:inline-block; width:6px; height:6px; border-radius:50%; background:var(--cyan2); margin-right:8px; animation:pulse-dot 1s infinite; }
+
+.right-panel {
+  border-left: 1px solid var(--panel-border);
+  display:flex; flex-direction:column; gap:14px;
+  overflow-y:auto; padding:16px;
+}
+
+/* 3-Button Toggle Style */
+.mode-toggle {
+  display:grid; grid-template-columns:1fr 1fr 1fr; gap:0;
+  border:1px solid var(--panel-border); border-radius:4px; overflow:hidden;
+}
+.mode-btn {
+  padding:8px 4px; font-family:'Orbitron',monospace; font-size:9px; letter-spacing:1px;
+  text-transform:uppercase; background:transparent;
+  border:none; cursor:pointer; color:var(--text-dim);
+  transition: all 0.2s; border-right: 1px solid rgba(0,200,255,0.1);
+}
+.mode-btn:last-child { border-right: none; }
+.mode-btn.active-fixed-fixed { background:rgba(0,212,255,0.15); color:var(--cyan); box-shadow:inset 0 0 10px rgba(0,212,255,0.1); }
+.mode-btn.active-dyn-fixed { background:rgba(255,214,0,0.15); color:var(--yellow); box-shadow:inset 0 0 10px rgba(255,214,0,0.1); }
+.mode-btn.active-dyn-dyn { background:rgba(0,255,136,0.15); color:var(--green); box-shadow:inset 0 0 10px rgba(0,255,136,0.1); }
+
+.ctrl-btns { display:grid; grid-template-columns:1fr 1fr; gap:6px; }
+.ctrl-btn {
+  padding:9px 6px; font-family:'Share Tech Mono',monospace; font-size:11px;
+  text-transform:uppercase; letter-spacing:1px;
+  background:transparent; border:1px solid var(--panel-border);
+  border-radius:3px; cursor:pointer; color:var(--text);
+  transition:all 0.2s;
+}
+.ctrl-btn:hover { border-color:var(--cyan); color:var(--cyan); background:rgba(0,212,255,0.08); }
+.ctrl-btn.start { border-color:var(--green); color:var(--green); }
+.ctrl-btn.start:hover { background:rgba(0,255,136,0.12); box-shadow:var(--glow-green); }
+.ctrl-btn.pause { border-color:var(--yellow); color:var(--yellow); }
+.ctrl-btn.reset { border-color:var(--red); color:var(--red); }
+
+.preset-grid { display:grid; grid-template-columns:1fr 1fr; gap:5px; }
+.preset-btn {
+  padding:7px 4px; font-family:'Share Tech Mono',monospace; font-size:10px;
+  text-align:center; cursor:pointer;
+  background:rgba(0,20,45,0.7); border:1px solid var(--panel-border);
+  border-radius:3px; color:var(--text-dim);
+  transition:all 0.2s; letter-spacing:1px;
+}
+.preset-btn:hover { border-color:var(--cyan); color:var(--cyan); }
+
+.emg-grid { display:grid; grid-template-columns:1fr 1fr; gap:6px; }
+.emg-btn {
+  padding:10px 6px; font-family:'Orbitron',monospace; font-size:10px;
+  letter-spacing:2px; text-transform:uppercase;
+  background:rgba(255,36,66,0.08); border:1px solid rgba(255,36,66,0.4);
+  border-radius:3px; cursor:pointer; color:rgba(255,100,120,0.9);
+  transition:all 0.2s;
+}
+.emg-btn:hover { background:rgba(255,36,66,0.18); box-shadow:var(--glow-red); color:var(--red); }
+.emg-btn.active { background:rgba(255,36,66,0.25); box-shadow:var(--glow-red); animation:emg-btn-flash 0.5s infinite; }
+@keyframes emg-btn-flash {0%,100%{opacity:1}50%{opacity:0.6}}
+
+.resume-btn {
+  width:100%; padding:9px; font-family:'Orbitron',monospace; font-size:10px;
+  letter-spacing:2px; text-transform:uppercase;
+  background:rgba(0,255,136,0.1); border:1px solid rgba(0,255,136,0.4);
+  border-radius:3px; cursor:pointer; color:var(--green);
+  transition:all 0.2s; margin-top:6px;
+  display:none;
+}
+.resume-btn.visible { display:block; }
+.resume-btn:hover { box-shadow:var(--glow-green); }
+
+.event-log {
+  background:rgba(0,10,25,0.8);
+  border:1px solid var(--panel-border);
+  border-radius:3px; padding:8px;
+  height:90px; overflow-y:auto;
+  font-family:'Share Tech Mono',monospace; font-size:9px;
+  color:var(--text-dim);
+  scrollbar-width:thin; scrollbar-color:var(--cyan) transparent;
+}
+.log-entry { margin-bottom:4px; padding-bottom:4px; border-bottom:1px solid rgba(0,180,255,0.05); }
+.log-entry .ts { color:var(--cyan); margin-right:6px; }
+.log-entry.emg { color:var(--red); }
+.log-entry.info { color:var(--cyan2); }
+
+.bottom-panel {
+  grid-column: 1/-1;
+  border-top: 1px solid var(--panel-border);
+  display:grid; grid-template-columns:1fr 2fr;
+  background: rgba(2,8,18,0.9);
+}
+
+.bottom-section { padding:14px 16px; border-right:1px solid var(--panel-border); }
+.bottom-section:last-child { border-right:none; }
+
+.comp-table { width:100%; border-collapse:collapse; font-family:'Share Tech Mono',monospace; font-size:11px; }
+.comp-table th {
+  text-align:left; padding:5px 4px;
+  color:var(--text-dim); font-weight:400;
+  border-bottom:1px solid var(--panel-border);
+  font-size:9px; letter-spacing:1px; text-transform:uppercase;
+}
+.comp-table th.ff { color:var(--cyan); }
+.comp-table th.df { color:var(--yellow); }
+.comp-table th.dd { color:var(--green); }
+.comp-table td { padding:5px 4px; border-bottom:1px solid rgba(0,180,255,0.04); }
+.comp-table td.val-ff { color:var(--cyan); font-weight:600; }
+.comp-table td.val-df { color:var(--yellow); font-weight:600; }
+.comp-table td.val-dd { color:var(--green); font-weight:600; }
+.comp-table .better { text-shadow: 0 0 8px currentColor; }
+
+canvas { width:100% !important; }
+
+.chart-with-legend {
+  display:flex; gap:8px; align-items:stretch; margin-top:4px;
+}
+.clickable-section { cursor: pointer; transition: background 0.2s; position: relative; }
+.clickable-section:hover { background: rgba(0, 212, 255, 0.05); }
+.clickable-section::after { content: '🔍 CLICK TO ENLARGE'; position: absolute; top: 14px; right: 16px; font-family: 'Share Tech Mono', monospace; font-size: 9px; color: var(--text-dim); opacity: 0; transition: opacity 0.2s; }
+.clickable-section:hover::after { opacity: 1; }
+
+.modal-overlay {
+  display: none; position: fixed; inset: 0; background: rgba(2, 11, 20, 0.85);
+  backdrop-filter: blur(8px); z-index: 1000; align-items: center; justify-content: center;
+}
+.modal-content {
+  background: var(--panel); border: 1px solid var(--cyan); border-radius: 8px;
+  padding: 24px; box-shadow: var(--glow-cyan); width: 90%; max-width: 800px;
+  position: relative; animation: modal-pop 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+@keyframes modal-pop { 0% { transform: scale(0.8); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
+.modal-table { font-size: 14px; margin-top: 10px; }
+.modal-table th { font-size: 13px; padding: 12px 8px; }
+.modal-table td { padding: 12px 8px; font-size: 16px; }
+
+.chart-canvas-wrap { flex:1; min-width:0; }
+.chart-legend {
+  display:flex; flex-direction:column; gap:8px; justify-content:center;
+  padding:8px;
+  background:rgba(0,15,35,0.7);
+  border:1px solid var(--panel-border);
+  border-radius:4px;
+  min-width:110px;
+}
+.legend-item {
+  display:flex; align-items:center; gap:6px;
+  font-family:'Share Tech Mono',monospace; font-size:9px;
+}
+.legend-dot {
+  width:10px; height:10px; border-radius:50%; flex-shrink:0;
+}
+.legend-val {
+  font-family:'Orbitron',monospace; font-size:11px; font-weight:700;
+  margin-top:2px;
+}
+.legend-lbl { color:var(--text-dim); font-size:8px; letter-spacing:1px; line-height: 1.2;}
+
+::-webkit-scrollbar { width:4px; }
+::-webkit-scrollbar-track { background:transparent; }
+::-webkit-scrollbar-thumb { background:rgba(0,212,255,0.3); border-radius:2px; }
+
+@media (max-width:1200px) {
+  .main-grid { grid-template-columns:240px 1fr 280px; }
+  .intersection { width:380px; height:380px; }
+}
+</style>
+</head>
+<body>
+<div class="wrapper">
+
+<header>
+  <div class="hdr-logo">SYUKZ STATION</div>
+  <div class="hdr-center">
+    <div class="sys-status"><div class="status-dot"></div><span id="sysStatusTxt">SYSTEM ONLINE</span></div>
+    <div class="hdr-time" id="clockDisplay">00:00:00</div>
+  </div>
+  <div class="hdr-right">
+    <div class="mode-badge" id="modeBadge">VIEWING: FIXED/FIXED</div>
+    <div class="mode-badge smart" id="aiBadge" style="display:none">TRIPLE SIM ACTIVE</div>
+  </div>
+</header>
+
+<div class="main-grid">
+
+  <div class="left-panel panel">
+    <div class="panel-title">Lane Controls</div>
+
+    <div id="laneControlN" class="lane-control">
+      <div class="lane-header">
+        <div class="lane-label"><div class="lane-indicator" id="ind-N"></div> NORTH</div>
+        <div class="lane-count" id="cnt-N">0</div>
+      </div>
+      <div class="lane-slider-row">
+        <span style="font-size:9px;color:var(--text-dim)">0</span>
+        <input type="range" class="lane-slider" min="0" max="120" value="6" id="slider-N" oninput="updateLane('N',this.value)">
+        <span style="font-size:9px;color:var(--text-dim)">120</span>
+      </div>
+      <div class="density-bar"><div class="density-fill" id="dens-N" style="width:30%"></div></div>
+      <div class="density-label" id="densl-N">LOW</div>
+    </div>
+
+    <div id="laneControlS" class="lane-control">
+      <div class="lane-header">
+        <div class="lane-label"><div class="lane-indicator" id="ind-S"></div> SOUTH</div>
+        <div class="lane-count" id="cnt-S">0</div>
+      </div>
+      <div class="lane-slider-row">
+        <span style="font-size:9px;color:var(--text-dim)">0</span>
+        <input type="range" class="lane-slider" min="0" max="120" value="4" id="slider-S" oninput="updateLane('S',this.value)">
+        <span style="font-size:9px;color:var(--text-dim)">120</span>
+      </div>
+      <div class="density-bar"><div class="density-fill" id="dens-S" style="width:20%"></div></div>
+      <div class="density-label" id="densl-S">LOW</div>
+    </div>
+
+    <div id="laneControlE" class="lane-control">
+      <div class="lane-header">
+        <div class="lane-label"><div class="lane-indicator" id="ind-E"></div> EAST</div>
+        <div class="lane-count" id="cnt-E">0</div>
+      </div>
+      <div class="lane-slider-row">
+        <span style="font-size:9px;color:var(--text-dim)">0</span>
+        <input type="range" class="lane-slider" min="0" max="120" value="12" id="slider-E" oninput="updateLane('E',this.value)">
+        <span style="font-size:9px;color:var(--text-dim)">120</span>
+      </div>
+      <div class="density-bar"><div class="density-fill" id="dens-E" style="width:60%"></div></div>
+      <div class="density-label" id="densl-E">MED</div>
+    </div>
+
+    <div id="laneControlW" class="lane-control">
+      <div class="lane-header">
+        <div class="lane-label"><div class="lane-indicator" id="ind-W"></div> WEST</div>
+        <div class="lane-count" id="cnt-W">0</div>
+      </div>
+      <div class="lane-slider-row">
+        <span style="font-size:9px;color:var(--text-dim)">0</span>
+        <input type="range" class="lane-slider" min="0" max="120" value="9" id="slider-W" oninput="updateLane('W',this.value)">
+        <span style="font-size:9px;color:var(--text-dim)">120</span>
+      </div>
+      <div class="density-bar"><div class="density-fill" id="dens-W" style="width:45%"></div></div>
+      <div class="density-label" id="densl-W">MED</div>
+    </div>
+
+    <div class="panel-title" style="margin-top:4px">Live Metrics</div>
+    <div class="stats-mini">
+      <div class="stat-mini"><div class="stat-mini-val" id="st-cleared">0</div><div class="stat-mini-lbl">Cleared</div></div>
+      <div class="stat-mini"><div class="stat-mini-val" id="st-cpm">0</div><div class="stat-mini-lbl">Cars/Min</div></div>
+      <div class="stat-mini" style="grid-column: span 2;"><div class="stat-mini-val" id="st-eff">0%</div><div class="stat-mini-lbl">Efficiency</div></div>
+    </div>
+
+    <div style="margin-top:4px">
+      <div class="panel-title">Congestion Level</div>
+      <div style="position:relative;height:20px;background:rgba(0,20,45,0.7);border:1px solid var(--panel-border);border-radius:3px;overflow:hidden;">
+        <div id="congBar" style="height:100%;width:0%;background:linear-gradient(90deg,var(--green),var(--yellow),var(--red));transition:width 0.5s;"></div>
+        <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-family:'Orbitron',monospace;font-size:11px;color:#fff;" id="congPct">0%</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="center-panel">
+    <div class="emergency-banner" id="emgBanner">⚠ EMERGENCY OVERRIDE ACTIVE ⚠</div>
+    
+    <div class="intersection-container">
+      <div class="intersection" id="intersectionEl">
+
+        <div class="road-h"></div>
+        <div class="road-v"></div>
+        <div class="intersect-box"></div>
+
+        <div class="tlight north">
+          <div class="tlight-box">
+            <div class="tlight-bulb r" id="tl-N-r"></div>
+            <div class="tlight-bulb y" id="tl-N-y"></div>
+            <div class="tlight-bulb g" id="tl-N-g"></div>
+          </div>
+          <div class="tlight-label">N</div>
+        </div>
+        <div class="tlight south">
+          <div class="tlight-box">
+            <div class="tlight-bulb r" id="tl-S-r"></div>
+            <div class="tlight-bulb y" id="tl-S-y"></div>
+            <div class="tlight-bulb g" id="tl-S-g"></div>
+          </div>
+          <div class="tlight-label">S</div>
+        </div>
+        <div class="tlight east">
+          <div class="tlight-box">
+            <div class="tlight-bulb r" id="tl-E-r"></div>
+            <div class="tlight-bulb y" id="tl-E-y"></div>
+            <div class="tlight-bulb g" id="tl-E-g"></div>
+          </div>
+          <div class="tlight-label">E</div>
+        </div>
+        <div class="tlight west">
+          <div class="tlight-box">
+            <div class="tlight-bulb r" id="tl-W-r"></div>
+            <div class="tlight-bulb y" id="tl-W-y"></div>
+            <div class="tlight-bulb g" id="tl-W-g"></div>
+          </div>
+          <div class="tlight-label">W</div>
+        </div>
+
+        <div class="timer-ring north" id="timerN">
+          <svg viewBox="0 0 40 40"><circle class="bg" cx="20" cy="20" r="16"/><circle class="fill" cx="20" cy="20" r="16" id="trN" stroke-dasharray="100.53" stroke-dashoffset="100.53"/></svg>
+          <div class="timer-ring-txt" id="trNtxt">-</div>
+        </div>
+        <div class="timer-ring south" id="timerS">
+          <svg viewBox="0 0 40 40"><circle class="bg" cx="20" cy="20" r="16"/><circle class="fill" cx="20" cy="20" r="16" id="trS" stroke-dasharray="100.53" stroke-dashoffset="100.53"/></svg>
+          <div class="timer-ring-txt" id="trStxt">-</div>
+        </div>
+        <div class="timer-ring east" id="timerE">
+          <svg viewBox="0 0 40 40"><circle class="bg" cx="20" cy="20" r="16"/><circle class="fill" cx="20" cy="20" r="16" id="trE" stroke-dasharray="100.53" stroke-dashoffset="100.53"/></svg>
+          <div class="timer-ring-txt" id="trEtxt">-</div>
+        </div>
+        <div class="timer-ring west" id="timerW">
+          <svg viewBox="0 0 40 40"><circle class="bg" cx="20" cy="20" r="16"/><circle class="fill" cx="20" cy="20" r="16" id="trW" stroke-dasharray="100.53" stroke-dashoffset="100.53"/></svg>
+          <div class="timer-ring-txt" id="trWtxt">-</div>
+        </div>
+
+        <div class="queue-zone north" id="q-N"></div>
+        <div class="queue-zone south" id="q-S"></div>
+        <div class="queue-zone east"  id="q-E"></div>
+        <div class="queue-zone west"  id="q-W"></div>
+
+        <div class="lane-overlay north">
+          <div class="lo-count" id="ov-N">0</div>
+        </div>
+        <div class="lane-overlay south">
+          <div class="lo-count" id="ov-S">0</div>
+        </div>
+        <div class="lane-overlay east">
+          <div class="lo-count" id="ov-E">0</div>
+        </div>
+        <div class="lane-overlay west">
+          <div class="lo-count" id="ov-W">0</div>
+        </div>
+
+      </div></div><div class="ai-ticker">
+      <span class="ai-dot"></span>
+      <span id="aiTicker">SYSTEM READY — PRESS START TO BEGIN SIMULATION</span>
+    </div>
+  </div><div class="right-panel panel">
+    <div class="panel-title">Intersection View</div>
+    <div class="mode-toggle">
+      <button class="mode-btn active-fixed-fixed" id="btnFF" onclick="setMode('fixed-fixed')">FIXED/FIXED</button>
+      <button class="mode-btn" id="btnDF" onclick="setMode('dyn-fixed')">DYN/FIXED</button>
+      <button class="mode-btn" id="btnDD" onclick="setMode('dyn-dyn')">DYN/DYN</button>
+    </div>
+
+    <div class="panel-title" style="margin-top:14px">Simulation</div>
+    <div class="ctrl-btns">
+      <button class="ctrl-btn start" onclick="startSim()">▶ Start</button>
+      <button class="ctrl-btn pause" onclick="pauseSim()">⏸ Pause</button>
+      <button class="ctrl-btn reset" onclick="resetSim()">↺ Reset</button>
+      <button class="ctrl-btn" onclick="randomTraffic()"> Random</button>
+    </div>
+
+    <div class="panel-title" style="margin-top:14px">Traffic Preset</div>
+    <div class="preset-grid">
+      <button class="preset-btn" onclick="setPreset('low')">Low</button>
+      <button class="preset-btn" onclick="setPreset('med')">Medium</button>
+      <button class="preset-btn" onclick="setPreset('high')">Heavy</button>
+      <button class="preset-btn" onclick="setPreset('rand')">Random</button>
+    </div>
+
+    <div class="panel-title" style="margin-top:14px">Emergency Override</div>
+    <div class="emg-grid">
+      <button class="emg-btn" id="emg-N" onclick="triggerEmergency('N')">⚠ NORTH</button>
+      <button class="emg-btn" id="emg-S" onclick="triggerEmergency('S')">⚠ SOUTH</button>
+      <button class="emg-btn" id="emg-E" onclick="triggerEmergency('E')">⚠ EAST</button>
+      <button class="emg-btn" id="emg-W" onclick="triggerEmergency('W')">⚠ WEST</button>
+    </div>
+    <button class="resume-btn" id="resumeBtn" onclick="resumeFromEmergency()">▶ Resume Normal</button>
+<button class="ctrl-btn" onclick="showSummaryModal()" 
+  style="width:100%; margin-bottom:8px; border-color:var(--cyan); color:var(--cyan);">
+   View Summary
+</button>
+<div class="panel-title" style="margin-top:14px">Event Log</div>
+    <div class="panel-title" style="margin-top:14px">Event Log</div>
+    <div class="event-log" id="eventLog">
+      <div class="log-entry info"><span class="ts">00:00:00</span>System initialized</div>
+    </div>
+
+    <div style="text-align:center;margin-top:8px;">
+      <div style="font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--text-dim)">SIM TIME</div>
+      <div style="font-family:'Orbitron',monospace;font-size:20px;color:var(--cyan);letter-spacing:3px;" id="simTime">00:00</div>
+    </div>
+  </div>
+
+  <div class="bottom-panel">
+    <div class="bottom-section clickable-section" onclick="openCompModal()" title="Click to enlarge">
+      <div class="panel-title">Triple Mode Comparison</div>
+      <table class="comp-table">
+        <thead>
+          <tr>
+            <th>Metric</th>
+            <th class="ff">Fix/Fix</th>
+            <th class="df">Dyn/Fix</th>
+            <th class="dd">Dyn/Dyn<br>(3m cap)</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td>Cleared</td><td class="val-ff" id="cmp-clr-ff">—</td><td class="val-df" id="cmp-clr-df">—</td><td class="val-dd" id="cmp-clr-dd">—</td></tr>
+          <tr><td>Congestion</td><td class="val-ff" id="cmp-cng-ff">—</td><td class="val-df" id="cmp-cng-df">—</td><td class="val-dd" id="cmp-cng-dd">—</td></tr>
+          <tr><td>Efficiency</td><td class="val-ff" id="cmp-eff-ff">—</td><td class="val-df" id="cmp-eff-df">—</td><td class="val-dd" id="cmp-eff-dd">—</td></tr>
+          <tr><td>Cars/Min</td><td class="val-ff" id="cmp-cpm-ff">—</td><td class="val-df" id="cmp-cpm-df">—</td><td class="val-dd" id="cmp-cpm-dd">—</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="bottom-section clickable-section" onclick="openChartModal('flow')" title="Click to enlarge">
+      <div class="panel-title">Vehicles Cleared Tracking</div>
+      <div class="chart-with-legend">
+        <div class="chart-canvas-wrap">
+          <canvas id="flowChart" height="90"></canvas>
+        </div>
+        <div class="chart-legend">
+          <div class="legend-item">
+            <div class="legend-dot" style="background:#00d4ff;box-shadow:0 0 6px #00d4ff;"></div>
+            <div>
+              <div class="legend-lbl">FIXED/FIXED</div>
+              <div class="legend-val" id="leg-flow-ff" style="color:#00d4ff">0</div>
+            </div>
+          </div>
+          <div class="legend-item">
+            <div class="legend-dot" style="background:#ffd600;box-shadow:0 0 6px #ffd600;"></div>
+            <div>
+              <div class="legend-lbl">DYN/FIXED</div>
+              <div class="legend-val" id="leg-flow-df" style="color:#ffd600">0</div>
+            </div>
+          </div>
+          <div class="legend-item">
+            <div class="legend-dot" style="background:#00ff88;box-shadow:0 0 6px #00ff88;"></div>
+            <div>
+              <div class="legend-lbl">DYN/DYN</div>
+              <div class="legend-val" id="leg-flow-dd" style="color:#00ff88">0</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div><div id="compModal" class="modal-overlay" onclick="closeCompModal(event)">
+  <div class="modal-content" onclick="event.stopPropagation()">
+    <div class="panel-title" style="font-size:16px; margin-bottom:10px;">
+      Detailed Triple Comparison
+      <span style="margin-left:auto; cursor:pointer; color:var(--red); text-shadow:var(--glow-red);" onclick="closeCompModal(event)">✖</span>
+    </div>
+    <table class="comp-table modal-table">
+      <thead>
+        <tr>
+          <th>Metric</th>
+          <th class="ff">Fixed Seq<br>Fixed 20s</th>
+          <th class="df">Dynamic Seq<br>Fixed 20s</th>
+          <th class="dd">Dynamic Seq<br>Dynamic 60s</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td>Cleared</td><td class="val-ff" id="mdl-cmp-clr-ff">—</td><td class="val-df" id="mdl-cmp-clr-df">—</td><td class="val-dd" id="mdl-cmp-clr-dd">—</td></tr>
+        <tr><td>Congestion</td><td class="val-ff" id="mdl-cmp-cng-ff">—</td><td class="val-df" id="mdl-cmp-cng-df">—</td><td class="val-dd" id="mdl-cmp-cng-dd">—</td></tr>
+        <tr><td>Efficiency</td><td class="val-ff" id="mdl-cmp-eff-ff">—</td><td class="val-df" id="mdl-cmp-eff-df">—</td><td class="val-dd" id="mdl-cmp-eff-dd">—</td></tr>
+        <tr><td>Cars/Min</td><td class="val-ff" id="mdl-cmp-cpm-ff">—</td><td class="val-df" id="mdl-cmp-cpm-df">—</td><td class="val-dd" id="mdl-cmp-cpm-dd">—</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div id="chartModal" class="modal-overlay" onclick="closeChartModal(event)">
+  <div class="modal-content" onclick="event.stopPropagation()" style="max-width:95vw; width:95vw; height:90vh; display:flex; flex-direction:column;">
+    <div class="panel-title" style="font-size:16px; margin-bottom:10px; flex-shrink:0;">
+      <span id="chartModalTitle">Enlarged Chart</span>
+      <span style="margin-left:auto; cursor:pointer; color:var(--red); text-shadow:var(--glow-red);" onclick="closeChartModal(event)">✖</span>
+    </div>
+    <div class="chart-with-legend" style="flex:1; margin-top:20px; align-items:center; min-height:0;">
+      <div class="chart-canvas-wrap" style="height:100%; width:100%;">
+        <canvas id="modalChartCanvas" style="width:100%; height:100%;"></canvas>
+      </div>
+      <div class="chart-legend" style="padding:20px; min-width:140px;">
+        <div class="legend-item">
+          <div class="legend-dot" style="background:#00d4ff;box-shadow:0 0 8px #00d4ff; width:16px; height:16px;"></div>
+          <div>
+            <div class="legend-lbl" style="font-size:11px;">FIXED/FIXED</div>
+            <div class="legend-val" id="mdl-leg-ff" style="color:#00d4ff; font-size:18px;">0</div>
+          </div>
+        </div>
+        <div class="legend-item" style="margin-top:20px;">
+          <div class="legend-dot" style="background:#ffd600;box-shadow:0 0 8px #ffd600; width:16px; height:16px;"></div>
+          <div>
+            <div class="legend-lbl" style="font-size:11px;">DYN/FIXED</div>
+            <div class="legend-val" id="mdl-leg-df" style="color:#ffd600; font-size:18px;">0</div>
+          </div>
+        </div>
+        <div class="legend-item" style="margin-top:20px;">
+          <div class="legend-dot" style="background:#00ff88;box-shadow:0 0 8px #00ff88; width:16px; height:16px;"></div>
+          <div>
+            <div class="legend-lbl" style="font-size:11px;">DYN/DYN</div>
+            <div class="legend-val" id="mdl-leg-dd" style="color:#00ff88; font-size:18px;">0</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<div id="summaryModal" class="modal-overlay" onclick="closeSummaryModal(event)">
+  <div class="modal-content" onclick="event.stopPropagation()" style="max-width:700px;">
+    <div class="panel-title" style="font-size:16px; margin-bottom:16px;">
+      SIMULATION FINAL SUMMARY
+      <span style="margin-left:auto; cursor:pointer; color:var(--red);" onclick="closeSummaryModal(event)">✖</span>
+    </div>
+    <div style="font-family:'Share Tech Mono',monospace; font-size:11px; color:var(--text-dim); margin-bottom:16px; letter-spacing:1px;">
+      SNAPSHOT TAKEN AT START — REFLECTS INITIAL TRAFFIC CONDITIONS
+    </div>
+    <table class="comp-table modal-table" style="font-size:13px;">
+      <thead>
+        <tr>
+          <th style="width:160px;">Metric</th>
+          <th class="ff">Fixed/Fixed<br><span style="font-size:10px;color:var(--text-dim)">Fixed seq · Fixed timer</span></th>
+          <th class="df">Dyn/Fixed<br><span style="font-size:10px;color:var(--text-dim)">Smart seq · Fixed timer</span></th>
+          <th class="dd">Dyn/Dyn<br><span style="font-size:10px;color:var(--text-dim)">Smart seq · Dynamic timer</span></th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td>Total Vehicles</td><td class="val-ff" id="sum-total-ff">—</td><td class="val-df" id="sum-total-df">—</td><td class="val-dd" id="sum-total-dd">—</td></tr>
+        <tr><td>North Queue</td><td class="val-ff" id="sum-N-ff">—</td><td class="val-df" id="sum-N-df">—</td><td class="val-dd" id="sum-N-dd">—</td></tr>
+        <tr><td>South Queue</td><td class="val-ff" id="sum-S-ff">—</td><td class="val-df" id="sum-S-df">—</td><td class="val-dd" id="sum-S-dd">—</td></tr>
+        <tr><td>East Queue</td><td class="val-ff" id="sum-E-ff">—</td><td class="val-df" id="sum-E-df">—</td><td class="val-dd" id="sum-E-dd">—</td></tr>
+        <tr><td>West Queue</td><td class="val-ff" id="sum-W-ff">—</td><td class="val-df" id="sum-W-df">—</td><td class="val-dd" id="sum-W-dd">—</td></tr>
+        <tr style="border-top:1px solid var(--panel-border);">
+          <td>Green Time (N)</td>
+          <td class="val-ff" id="sum-gt-N-ff">—</td>
+          <td class="val-df" id="sum-gt-N-df">—</td>
+          <td class="val-dd" id="sum-gt-N-dd">—</td>
+        </tr>
+        <tr><td>Green Time (S)</td><td class="val-ff" id="sum-gt-S-ff">—</td><td class="val-df" id="sum-gt-S-df">—</td><td class="val-dd" id="sum-gt-S-dd">—</td></tr>
+        <tr><td>Green Time (E)</td><td class="val-ff" id="sum-gt-E-ff">—</td><td class="val-df" id="sum-gt-E-df">—</td><td class="val-dd" id="sum-gt-E-dd">—</td></tr>
+        <tr><td>Green Time (W)</td><td class="val-ff" id="sum-gt-W-ff">—</td><td class="val-df" id="sum-gt-W-df">—</td><td class="val-dd" id="sum-gt-W-dd">—</td></tr>
+        <tr style="border-top:1px solid var(--panel-border);">
+          <td>Clear Time</td>
+          <td class="val-ff" id="sum-clrt-ff">—</td>
+          <td class="val-df" id="sum-clrt-df">—</td>
+          <td class="val-dd" id="sum-clrt-dd">—</td>
+        </tr>
+      </tbody>
+    </table>
+    <div style="margin-top:16px; padding:10px; background:rgba(0,255,136,0.06); border:1px solid rgba(0,255,136,0.2); border-radius:4px;">
+      <div style="font-family:'Orbitron',monospace; font-size:10px; color:var(--green); letter-spacing:2px; margin-bottom:6px;">▶ RECOMMENDED MODE</div>
+      <div id="sum-recommendation" style="font-family:'Share Tech Mono',monospace; font-size:12px; color:var(--text);"></div>
+    </div>
+  </div>
+</div>
+</div><script>
+/* ================================================
+   NEXUS TRAFFIC CONTROL — TRIPLE ENGINE v4.0
+   1. fixed-fixed: Sequence cycle N-E-S-W, 20s flat
+   2. dyn-fixed: Sequence picks max queue, 20s flat
+   3. dyn-dyn: Sequence picks max queue, 5s-60s dynamic
+   ================================================ */
+
+const LANES = ['N','S','E','W'];
+const LANE_SEQ_FIXED = ['N','E','S','W'];
+
+function carSVG_NS(colorHex) {
+  return `<svg width="22" height="36" viewBox="0 0 22 36" xmlns="http://www.w3.org/2000/svg">
+    <rect x="2" y="8" width="18" height="22" rx="3" fill="${colorHex}" opacity="0.95"/>
+    <rect x="5" y="12" width="12" height="10" rx="2" fill="${colorHex}" opacity="0.7"/>
+    <rect x="3" y="4" width="16" height="5" rx="2" fill="${colorHex}" opacity="0.8"/>
+    <rect x="3" y="27" width="16" height="5" rx="2" fill="${colorHex}" opacity="0.6"/>
+    <rect x="4" y="5" width="5" height="3" rx="1" fill="#fffde0" opacity="0.9"/>
+    <rect x="13" y="5" width="5" height="3" rx="1" fill="#fffde0" opacity="0.9"/>
+    <rect x="4" y="28" width="5" height="3" rx="1" fill="#ff4444" opacity="0.9"/>
+    <rect x="13" y="28" width="5" height="3" rx="1" fill="#ff4444" opacity="0.9"/>
+    <rect x="6" y="13" width="10" height="8" rx="1" fill="rgba(150,220,255,0.4)"/>
+    <rect x="0" y="10" width="3" height="6" rx="1" fill="#1a1a2e"/>
+    <rect x="19" y="10" width="3" height="6" rx="1" fill="#1a1a2e"/>
+    <rect x="0" y="22" width="3" height="6" rx="1" fill="#1a1a2e"/>
+    <rect x="19" y="22" width="3" height="6" rx="1" fill="#1a1a2e"/>
+  </svg>`;
+}
+
+function carSVG_EW(colorHex) {
+  return `<svg width="36" height="22" viewBox="0 0 36 22" xmlns="http://www.w3.org/2000/svg">
+    <rect x="8" y="2" width="22" height="18" rx="3" fill="${colorHex}" opacity="0.95"/>
+    <rect x="12" y="5" width="10" height="12" rx="2" fill="${colorHex}" opacity="0.7"/>
+    <rect x="27" y="3" width="5" height="16" rx="2" fill="${colorHex}" opacity="0.8"/>
+    <rect x="4" y="3" width="5" height="16" rx="2" fill="${colorHex}" opacity="0.6"/>
+    <rect x="28" y="4" width="3" height="5" rx="1" fill="#fffde0" opacity="0.9"/>
+    <rect x="28" y="13" width="3" height="5" rx="1" fill="#fffde0" opacity="0.9"/>
+    <rect x="5" y="4" width="3" height="5" rx="1" fill="#ff4444" opacity="0.9"/>
+    <rect x="5" y="13" width="3" height="5" rx="1" fill="#ff4444" opacity="0.9"/>
+    <rect x="13" y="6" width="8" height="10" rx="1" fill="rgba(150,220,255,0.4)"/>
+    <rect x="10" y="0" width="6" height="3" rx="1" fill="#1a1a2e"/>
+    <rect x="22" y="0" width="6" height="3" rx="1" fill="#1a1a2e"/>
+    <rect x="10" y="19" width="6" height="3" rx="1" fill="#1a1a2e"/>
+    <rect x="22" y="19" width="6" height="3" rx="1" fill="#1a1a2e"/>
+  </svg>`;
+}
+
+function ambulanceSVG_NS() {
+  return `<svg width="24" height="40" viewBox="0 0 24 40" xmlns="http://www.w3.org/2000/svg">
+    <rect x="2" y="4" width="20" height="32" rx="4" fill="#ffffff" stroke="#dddddd" stroke-width="1"/>
+    <rect x="10" y="18" width="4" height="10" fill="#ff0000"/>
+    <rect x="7" y="21" width="10" height="4" fill="#ff0000"/>
+    <rect x="4" y="8" width="16" height="6" rx="1" fill="#223344"/>
+    <rect x="5" y="5" width="6" height="2" fill="#ff0000" class="emg-flash-light"/>
+    <rect x="13" y="5" width="6" height="2" fill="#0000ff" class="emg-flash-light"/>
+  </svg>`;
+}
+
+function ambulanceSVG_EW() {
+  return `<svg width="40" height="24" viewBox="0 0 40 24" xmlns="http://www.w3.org/2000/svg">
+    <rect x="4" y="2" width="32" height="20" rx="4" fill="#ffffff" stroke="#dddddd" stroke-width="1"/>
+    <rect x="18" y="10" width="10" height="4" fill="#ff0000"/>
+    <rect x="21" y="7" width="4" height="10" fill="#ff0000"/>
+    <rect x="26" y="4" width="6" height="16" rx="1" fill="#223344"/>
+    <rect x="33" y="5" width="2" height="6" fill="#ff0000"/>
+    <rect x="33" y="13" width="2" height="6" fill="#0000ff"/>
+  </svg>`;
+}
+
+const CAR_COLORS = ['#00c8ff', '#00ff78', '#ffd600', '#ff5050', '#b464ff'];
+
+function makeEngine(mode) {
+  return {
+    mode,
+    queue:       { N:0, S:0, E:0, W:0 },
+    cleared:     { N:0, S:0, E:0, W:0 },
+    totalCleared: 0,
+    greenLane:   null,
+    greenTimer:  0,
+    greenDuration: 0,
+    greenTicks:  0, 
+    seqIdx:      0,
+    initialQueue: 0,
+    cpmWindow: [],
+    stats: { cpm:0, congestion:0, eff:0 }
+  };
+}
+
+let vehicles = { N:6, S:4, E:12, W:9 };
+
+let sim = {
+  running: false,
+  paused:  false,
+  simTime: 0,
+  displayMode: 'fixed-fixed',
+  emergency: null,
+  engines: { 
+    'fixed-fixed': makeEngine('fixed-fixed'), 
+    'dyn-fixed': makeEngine('dyn-fixed'),
+    'dyn-dyn': makeEngine('dyn-dyn') 
+  },
+  flowHistory: []
+};
+
+let mainInterval = null;
+let tickerIdx = 0;
+
+function updateClock() {
+  const n = new Date();
+  document.getElementById('clockDisplay').textContent =
+    [n.getHours(),n.getMinutes(),n.getSeconds()]
+    .map(v=>String(v).padStart(2,'0')).join(':');
+}
+setInterval(updateClock,1000); updateClock();
+
+function updateLane(lane, val) {
+  val = parseInt(val);
+  vehicles[lane] = val;
+  if (!sim.running) {
+    sim.engines['fixed-fixed'].queue[lane] = val;
+    sim.engines['dyn-fixed'].queue[lane] = val;
+    sim.engines['dyn-dyn'].queue[lane] = val;
+    renderQueue(lane);
+  }
+  updateLaneUI(lane);
+}
+
+function updateLaneUI(lane) {
+  const v = vehicles[lane];
+  document.getElementById(`cnt-${lane}`).textContent = v;
+  const densEl = document.getElementById(`dens-${lane}`);
+  const lblEl  = document.getElementById(`densl-${lane}`);
+  densEl.style.width = ((v/120)*100)+'%';
+  if (v <= 30) { densEl.className='density-fill low'; lblEl.textContent='LOW'; lblEl.className='density-label low'; }
+  else if (v <= 75) { densEl.className='density-fill med'; lblEl.textContent='MEDIUM'; lblEl.className='density-label med'; }
+  else { densEl.className='density-fill high'; lblEl.textContent='HIGH'; lblEl.className='density-label high'; }
+}
+
+function setLight(lane, color) {
+  ['r','y','g'].forEach(c => document.getElementById(`tl-${lane}-${c}`).className = `tlight-bulb ${c}`+(c===color?' on':''));
+  document.getElementById(`ind-${lane}`).className = 'lane-indicator'+(color==='g'?' green':color==='y'?' yellow':'');
+}
+
+function setAllRed(except) { LANES.forEach(l => { if(l!==except) setLight(l,'r'); }); }
+
+function updateTimerRing(lane, timeLeft, total) {
+  const circ = 100.53; 
+  const offset = circ - circ*(total>0?timeLeft/total:0);
+  document.getElementById(`tr${lane}`).style.strokeDashoffset = offset;
+  document.getElementById(`tr${lane}txt`).textContent = timeLeft > 0 ? timeLeft : '';
+  
+  const engColors = { 'fixed-fixed': '#00d4ff', 'dyn-fixed': '#ffd600', 'dyn-dyn': '#00ff88' };
+  document.getElementById(`tr${lane}`).style.stroke = engColors[sim.displayMode];
+}
+
+function renderQueue(lane) {
+  const eng = sim.engines[sim.displayMode];
+  const q = eng.queue[lane];
+  const el = document.getElementById(`q-${lane}`);
+  const isNS = lane==='N'||lane==='S';
+  el.innerHTML = '';
+  const shown = Math.min(q, 7);
+  const offset = eng.cleared[lane] || 0;
+
+  for (let i=0; i<shown; i++) {
+    const color = CAR_COLORS[(i + offset) % CAR_COLORS.length];
+    const v = document.createElement('div');
+    v.className = 'vehicle ' + (isNS ? 'ns' : 'ew');
+    const rot = (lane === 'N' || lane === 'E') ? ' style="transform:rotate(180deg);"' : '';
+    v.innerHTML = `<div${rot}>${isNS ? carSVG_NS(color) : carSVG_EW(color)}</div>`;
+    el.appendChild(v);
+  }
+  document.getElementById(`ov-${lane}`).textContent = q;
+}
+
+function renderAllQueues() { LANES.forEach(l => renderQueue(l)); }
+
+function spawnMovingCar(lane, color, isAmbulance = false) {
+  const container = document.getElementById('intersectionEl');
+  const v = document.createElement('div');
+  v.className = 'vehicle ' + (lane==='N'||lane==='S' ? 'ns' : 'ew');
+  v.style.position = 'absolute';
+  v.style.zIndex = isAmbulance ? '5' : '4';
+  const rot = (lane === 'N' || lane === 'E') ? ' style="transform:rotate(180deg);"' : '';
+  
+  if (isAmbulance) {
+    v.innerHTML = `<div${rot}>${lane==='N'||lane==='S' ? ambulanceSVG_NS() : ambulanceSVG_EW()}</div>`;
+  } else {
+    v.innerHTML = `<div${rot}>${lane==='N'||lane==='S' ? carSVG_NS(color) : carSVG_EW(color)}</div>`;
+  }
+
+  v.style.transition = 'all 1.5s cubic-bezier(0.3, 0.0, 0.8, 0.15)';
+
+  if (lane === 'N') {
+      v.style.left = 'calc(50% - 30px)';
+      v.style.top = 'calc(50% - 62px)';
+      v.style.transform = 'translate(-50%, -100%)';
+      container.appendChild(v);
+      setTimeout(() => { v.style.top = 'calc(100% + 100px)'; }, 20);
+  } else if (lane === 'S') {
+      v.style.left = 'calc(50% + 30px)';
+      v.style.top = 'calc(50% + 62px)';
+      v.style.transform = 'translate(-50%, 0)';
+      container.appendChild(v);
+      setTimeout(() => { v.style.top = '-100px'; }, 20);
+  } else if (lane === 'E') {
+      v.style.top = 'calc(50% - 30px)';
+      v.style.left = 'calc(50% + 62px)';
+      v.style.transform = 'translate(0, -50%)';
+      container.appendChild(v);
+      setTimeout(() => { v.style.left = '-100px'; }, 20);
+  } else if (lane === 'W') {
+      v.style.top = 'calc(50% + 30px)';
+      v.style.left = 'calc(50% - 62px)';
+      v.style.transform = 'translate(-100%, -50%)';
+      container.appendChild(v);
+      setTimeout(() => { v.style.left = 'calc(100% + 100px)'; }, 20);
+  }
+
+  setTimeout(() => { if(v.parentNode) v.parentNode.removeChild(v); }, 1600);
+}
+
+function passVehicles(eng, lane) {
+  if (!lane || eng.queue[lane]<=0) return;
+  const pass = 1; 
+
+  if (eng.mode === sim.displayMode) {
+      for(let p=0; p<pass; p++) {
+          const colorIdx = ((eng.cleared[lane]||0) + p) % CAR_COLORS.length;
+          const color = CAR_COLORS[colorIdx];
+          setTimeout(() => spawnMovingCar(lane, color), p * 400); 
+      }
+  }
+
+  eng.queue[lane] -= pass;
+  eng.cleared[lane] = (eng.cleared[lane]||0) + pass;
+  eng.totalCleared += pass;
+
+  if (eng.mode === sim.displayMode) {
+    vehicles[lane] = eng.queue[lane];
+    const slider = document.getElementById(`slider-${lane}`);
+    if (slider) slider.value = vehicles[lane];
+    updateLaneUI(lane);
+  }
+}
+
+function chooseNext(eng) {
+  if (eng.mode === 'fixed-fixed') {
+    eng.seqIdx = (eng.seqIdx + 1) % 4;
+    return LANE_SEQ_FIXED[eng.seqIdx];
+  } 
+  else {
+    let maxQ = -1, best = LANE_SEQ_FIXED[eng.seqIdx];
+    LANES.forEach(l => { 
+      if(eng.queue[l] > maxQ && eng.queue[l] > 0){
+        maxQ = eng.queue[l];
+        best = l;
+      } 
+    });
+    
+    if (maxQ <= 0) {
+      eng.seqIdx = (eng.seqIdx + 1) % 4;
+      return LANE_SEQ_FIXED[eng.seqIdx];
+    }
+    return best;
+  }
+}
+
+function calcDuration(eng, lane) { 
+  if (eng.mode === 'dyn-dyn') {
+    return Math.max(5, Math.min(180, 5 + eng.queue[lane]));  // ← 60 → 180
+  }
+  const fixedTimes = { N: 120, S: 75, W: 60, E: 72 };  // seconds
+  return fixedTimes[lane] || 20;
+}
+
+function tickEngine(eng) {
+  if (eng.greenTimer <= 0) {
+    const next = chooseNext(eng);
+    eng.greenLane = next;
+    eng.greenDuration = calcDuration(eng, next);
+    eng.greenTimer = eng.greenDuration;
+    eng.greenTicks = 0; 
+  } else {
+    eng.greenTimer--;
+    eng.greenTicks = (eng.greenTicks || 0) + 1;
+    
+    if (eng.greenTicks % 2 === 1) {
+        passVehicles(eng, eng.greenLane);
+    }
+  }
+
+  // Congestion: remaining vs initial load
+  const totalQ = LANES.reduce((a,l) => a + eng.queue[l], 0);
+  const initQ  = eng.initialQueue || 1;
+  const congPct = Math.min(100, Math.round((totalQ / initQ) * 100));
+
+  // Rolling CPM: last 30 ticks
+  eng.cpmWindow.push({ cleared: eng.totalCleared, time: sim.simTime });
+  if (eng.cpmWindow.length > 30) eng.cpmWindow.shift();
+  const w = eng.cpmWindow;
+  const cpm = w.length >= 2
+    ? Math.round((w[w.length-1].cleared - w[0].cleared) / ((w[w.length-1].time - w[0].time) / 60))
+    : 0;
+
+  // Efficiency: actual cleared vs theoretical max (1 car per 2 ticks)
+  const theoreticalMax = Math.floor(sim.simTime / 2);
+  const eff = theoreticalMax > 0
+    ? Math.min(100, Math.round((eng.totalCleared / theoreticalMax) * 100))
+    : 0;
+
+  eng.stats = { cpm, congestion: congPct, eff, cleared: eng.totalCleared };
+}
+
+function tick() {
+  if (!sim.running || sim.paused) return;
+  sim.simTime++;
+  updateSimTime();
+
+  if (sim.emergency) {
+    sim.emgTicks = (sim.emgTicks || 0) + 1;
+    if (sim.emgTicks % 2 === 1) { 
+        const de = sim.engines[sim.displayMode];
+        passVehicles(de, sim.emergency);
+    }
+    renderAllQueues();
+    updateMetricsDisplay();
+    return;
+  }
+
+  tickEngine(sim.engines['fixed-fixed']);
+  tickEngine(sim.engines['dyn-fixed']);
+  tickEngine(sim.engines['dyn-dyn']);
+
+  const de = sim.engines[sim.displayMode];
+  setAllRed(de.greenLane);
+  if (de.greenLane) setLight(de.greenLane, 'g');
+  LANES.forEach(l => {
+    if (l===de.greenLane) updateTimerRing(l, de.greenTimer, de.greenDuration);
+    else updateTimerRing(l, 0, 1);
+  });
+
+  renderAllQueues();
+  updateMetricsDisplay();
+  recordHistory();
+
+  if (sim.simTime % 5 === 0) updateAiTicker();
+}
+
+function updateMetricsDisplay() {
+  const de = sim.engines[sim.displayMode];
+  document.getElementById('st-cleared').textContent = de.stats.cleared||0;
+  document.getElementById('st-cpm').textContent = de.stats.cpm||0;
+  document.getElementById('st-eff').textContent = (de.stats.eff||0)+'%';
+  document.getElementById('congBar').style.width = (de.stats.congestion||0)+'%';
+  document.getElementById('congPct').textContent = (de.stats.congestion||0)+'%';
+  updateCompTable();
+}
+
+function updateCompTable() {
+  const ff = sim.engines['fixed-fixed'].stats;
+  const df = sim.engines['dyn-fixed'].stats;
+  const dd = sim.engines['dyn-dyn'].stats;
+  
+  const set = (id, v) => { const el=document.getElementById(id); if(el) el.textContent=v!=null?v:'—'; };
+
+  set('cmp-clr-ff', ff.cleared||null);
+  set('cmp-clr-df', df.cleared||null);
+  set('cmp-clr-dd', dd.cleared||null);
+  highlightBest3('cmp-clr-ff','cmp-clr-df','cmp-clr-dd', ff.cleared, df.cleared, dd.cleared, 'max');
+
+  set('cmp-cng-ff', ff.congestion!=null ? ff.congestion+'%' : null);
+  set('cmp-cng-df', df.congestion!=null ? df.congestion+'%' : null);
+  set('cmp-cng-dd', dd.congestion!=null ? dd.congestion+'%' : null);
+  highlightBest3('cmp-cng-ff','cmp-cng-df','cmp-cng-dd', ff.congestion, df.congestion, dd.congestion, 'min');
+
+  set('cmp-eff-ff', ff.eff!=null ? ff.eff+'%' : null);
+  set('cmp-eff-df', df.eff!=null ? df.eff+'%' : null);
+  set('cmp-eff-dd', dd.eff!=null ? dd.eff+'%' : null);
+  highlightBest3('cmp-eff-ff','cmp-eff-df','cmp-eff-dd', ff.eff, df.eff, dd.eff, 'max');
+
+  set('cmp-cpm-ff', ff.cpm||null);
+  set('cmp-cpm-df', df.cpm||null);
+  set('cmp-cpm-dd', dd.cpm||null);
+  highlightBest3('cmp-cpm-ff','cmp-cpm-df','cmp-cpm-dd', ff.cpm, df.cpm, dd.cpm, 'max');
+
+  // Modal Table Duplicates
+  set('mdl-cmp-clr-ff', ff.cleared||null);
+  set('mdl-cmp-clr-df', df.cleared||null);
+  set('mdl-cmp-clr-dd', dd.cleared||null);
+  highlightBest3('mdl-cmp-clr-ff','mdl-cmp-clr-df','mdl-cmp-clr-dd', ff.cleared, df.cleared, dd.cleared, 'max');
+
+  set('mdl-cmp-cng-ff', ff.congestion!=null ? ff.congestion+'%' : null);
+  set('mdl-cmp-cng-df', df.congestion!=null ? df.congestion+'%' : null);
+  set('mdl-cmp-cng-dd', dd.congestion!=null ? dd.congestion+'%' : null);
+  highlightBest3('mdl-cmp-cng-ff','mdl-cmp-cng-df','mdl-cmp-cng-dd', ff.congestion, ff.congestion, dd.congestion, 'min');
+
+  set('mdl-cmp-eff-ff', ff.eff!=null ? ff.eff+'%' : null);
+  set('mdl-cmp-eff-df', df.eff!=null ? df.eff+'%' : null);
+  set('mdl-cmp-eff-dd', dd.eff!=null ? dd.eff+'%' : null);
+  highlightBest3('mdl-cmp-eff-ff','mdl-cmp-eff-df','mdl-cmp-eff-dd', ff.eff, df.eff, dd.eff, 'max');
+
+  set('mdl-cmp-cpm-ff', ff.cpm||null);
+  set('mdl-cmp-cpm-df', df.cpm||null);
+  set('mdl-cmp-cpm-dd', dd.cpm||null);
+  highlightBest3('mdl-cmp-cpm-ff','mdl-cmp-cpm-df','mdl-cmp-cpm-dd', ff.cpm, df.cpm, dd.cpm, 'max');
+}
+
+function highlightBest3(id1, id2, id3, v1, v2, v3, type) {
+  const e1 = document.getElementById(id1), e2 = document.getElementById(id2), e3 = document.getElementById(id3);
+  if (!e1||!e2||!e3||v1==null||v2==null||v3==null) return;
+  e1.style.textShadow=''; e2.style.textShadow=''; e3.style.textShadow='';
+  
+  let target = type === 'max' ? Math.max(v1,v2,v3) : Math.min(v1,v2,v3);
+  if (v1 === target) e1.style.textShadow = '0 0 8px var(--cyan)';
+  if (v2 === target) e2.style.textShadow = '0 0 8px var(--yellow)';
+  if (v3 === target) e3.style.textShadow = '0 0 8px var(--green)';
+}
+
+function recordHistory() {
+  if (sim.simTime % 5 !== 0) return;
+
+  const now = new Date();
+  const t = String(now.getHours()).padStart(2, '0') + ':' + 
+            String(now.getMinutes()).padStart(2, '0') + ':' + 
+            String(now.getSeconds()).padStart(2, '0');
+
+  sim.flowHistory.push({ 
+    t, 
+    ff: sim.engines['fixed-fixed'].stats.cleared||0, 
+    df: sim.engines['dyn-fixed'].stats.cleared||0,
+    dd: sim.engines['dyn-dyn'].stats.cleared||0
+  });
+  if (sim.flowHistory.length > 20) sim.flowHistory.shift();
+
+  drawCharts();
+}
+
+const TICKER_MSGS = [
+  '3-WAY COMPARISON ACTIVE: EVALUATING ROUTING vs. TIMING',
+  'FIXED/FIXED: DUMB ROUTING (N-E-S-W), RIGID TIMER (20s)',
+  'DYN/FIXED: SMART ROUTING (HEAVY LANE), RIGID TIMER (20s)',
+  'DYN/DYN: SMART ROUTING (HEAVY LANE), SMART TIMER (60s CAP)',
+  'WATCH THE GRAPHS TO SEE IF TIMING MATTERS AS MUCH AS ROUTING'
+];
+function updateAiTicker() { tickerIdx = (tickerIdx+1)%TICKER_MSGS.length; document.getElementById('aiTicker').textContent = TICKER_MSGS[tickerIdx]; }
+
+let flowCtx;
+let activeChartModal = null;
+
+function initCharts() {
+  const c = document.getElementById('flowChart'), wrap = c.parentElement;
+  c.width  = wrap.offsetWidth * (window.devicePixelRatio||1);
+  c.height = 90 * (window.devicePixelRatio||1);
+  c.style.height = '90px';
+  flowCtx = document.getElementById('flowChart').getContext('2d');
+}
+
+function drawTripleChart(ctx, canvas, history, k1, k2, k3, c1, c2, c3, isLarge = false) {
+  const W = canvas.width, H = canvas.height, dpr = window.devicePixelRatio||1;
+  ctx.clearRect(0,0,W,H);
+  ctx.strokeStyle='rgba(0,180,255,0.07)'; ctx.lineWidth=1;
+  for(let i=0;i<4;i++){ ctx.beginPath();ctx.moveTo(0,(i/3)*H);ctx.lineTo(W,(i/3)*H);ctx.stroke(); }
+  if(!history||history.length<2) return;
+
+  const maxVal = Math.max(...history.map(d=>Math.max(d[k1]||0, d[k2]||0, d[k3]||0)), 10);
+  const N = history.length, leftPad = (isLarge?20:6), rightPad = (isLarge?20:6), topPad = (isLarge?20:8) * dpr, bottomPad = (isLarge?30:22) * dpr;
+  const xFor = (i) => leftPad + (i/(N-1)) * (W - leftPad - rightPad);
+  const yFor = (v) => topPad + (1 - (v||0)/maxVal) * (H - topPad - bottomPad);
+
+  const drawLine = (key, color, filled) => {
+    const pts = history.map((d,i)=>({ x:xFor(i), y:yFor(d[key]) }));
+    if(filled){
+      ctx.beginPath(); ctx.moveTo(pts[0].x, H - bottomPad);
+      pts.forEach(p=>ctx.lineTo(p.x,p.y)); ctx.lineTo(pts[pts.length-1].x, H - bottomPad);
+      ctx.closePath(); ctx.fillStyle = color.includes('#') ? color + '1A' : color.replace('1)', '0.1)'); 
+      ctx.fill();
+    }
+    ctx.beginPath(); pts.forEach((p,i)=>i===0?ctx.moveTo(p.x,p.y):ctx.lineTo(p.x,p.y));
+    ctx.strokeStyle=color; ctx.lineWidth=(isLarge?3:2)*dpr; ctx.shadowColor=color; ctx.shadowBlur=6;
+    ctx.stroke(); ctx.shadowBlur=0;
+    pts.forEach(p=>{ ctx.beginPath(); ctx.arc(p.x,p.y,(isLarge?4:2.5)*dpr,0,Math.PI*2); ctx.fillStyle=color; ctx.fill(); });
+  };
+  
+  drawLine(k1, c1, false); 
+  drawLine(k2, c2, false); 
+  drawLine(k3, c3, false);
+
+  ctx.fillStyle='rgba(0,180,255,0.5)'; 
+  ctx.font=`${(isLarge?12:8)*dpr}px Share Tech Mono`; 
+  
+  const numLabels = Math.min(N, 9);
+  const indices = [];
+  if (N > 0) {
+    for(let i = 0; i < numLabels; i++) {
+      indices.push(Math.floor(i * (N - 1) / Math.max(1, numLabels - 1)));
+    }
+  }
+
+  indices.forEach((idx, i) => { 
+    if (idx < N && history[idx]) {
+      if (i === 0) ctx.textAlign = 'left';
+      else if (i === indices.length - 1) ctx.textAlign = 'right';
+      else ctx.textAlign = 'center';
+      
+      ctx.fillText(history[idx].t, xFor(idx), H - (isLarge?10:4)*dpr); 
+    }
+  });
+}
+
+function drawCharts() {
+  if (!flowCtx) return;
+  const c = document.getElementById('flowChart'), wrap = c.parentElement;
+  c.width = wrap.offsetWidth*(window.devicePixelRatio||1); c.height=90*(window.devicePixelRatio||1);
+  
+  drawTripleChart(flowCtx, document.getElementById('flowChart'), sim.flowHistory, 'ff','df','dd', '#00d4ff', '#ffd600', '#00ff88');
+  
+  if (sim.flowHistory.length > 0) {
+    document.getElementById('leg-flow-ff').textContent = sim.flowHistory[sim.flowHistory.length-1].ff;
+    document.getElementById('leg-flow-df').textContent = sim.flowHistory[sim.flowHistory.length-1].df;
+    document.getElementById('leg-flow-dd').textContent = sim.flowHistory[sim.flowHistory.length-1].dd;
+  }
+
+  if (activeChartModal === 'flow') {
+    const mc = document.getElementById('modalChartCanvas');
+    const mwrap = mc.parentElement;
+    mc.width = mwrap.offsetWidth * (window.devicePixelRatio||1);
+    mc.height = mwrap.offsetHeight * (window.devicePixelRatio||1);
+    const mctx = mc.getContext('2d');
+    
+    drawTripleChart(mctx, mc, sim.flowHistory, 'ff','df','dd', '#00d4ff', '#ffd600', '#00ff88', true);
+    if (sim.flowHistory.length > 0) {
+      document.getElementById('mdl-leg-ff').textContent = sim.flowHistory[sim.flowHistory.length-1].ff;
+      document.getElementById('mdl-leg-df').textContent = sim.flowHistory[sim.flowHistory.length-1].df;
+      document.getElementById('mdl-leg-dd').textContent = sim.flowHistory[sim.flowHistory.length-1].dd;
+    }
+  }
+}
+
+function updateSimTime() {
+  document.getElementById('simTime').textContent=String(Math.floor(sim.simTime/60)).padStart(2,'0')+':'+String(sim.simTime%60).padStart(2,'0');
+}
+
+function logEvent(msg, type='') {
+  const log=document.getElementById('eventLog');
+  const ts=String(Math.floor(sim.simTime/60)).padStart(2,'0')+':'+String(sim.simTime%60).padStart(2,'0')+':00';
+  const div=document.createElement('div'); div.className='log-entry '+(type||'');
+  div.innerHTML=`<span class="ts">${ts}</span>${msg}`;
+  log.insertBefore(div,log.firstChild);
+  while(log.children.length>20) log.removeChild(log.lastChild);
+}
+
+function openCompModal() {
+  document.getElementById('compModal').style.display = 'flex';
+  updateCompTable();
+}
+// Clean context separation logic wrapper override
+function closeCompModal(e) {
+  if (e) e.stopPropagation();
+  document.getElementById('compModal').style.display = 'none';
+}
+
+function openChartModal(type) {
+  activeChartModal = type;
+  document.getElementById('chartModal').style.display = 'flex';
+  document.getElementById('chartModalTitle').textContent = 'Vehicles Cleared — Triple Comparison';
+  setTimeout(() => { drawCharts(); }, 50);
+}
+function closeChartModal(e) {
+  if (e) e.stopPropagation();
+  document.getElementById('chartModal').style.display = 'none';
+  activeChartModal = null;
+}
+
+function startSim() {
+  if (sim.running && !sim.paused) return;
+  if (sim.paused) { sim.paused=false; logEvent('Simulation resumed','info'); return; }
+  LANES.forEach(l=>{
+    sim.engines['fixed-fixed'].queue[l]=vehicles[l]; 
+    sim.engines['dyn-fixed'].queue[l]=vehicles[l];
+    sim.engines['dyn-dyn'].queue[l]=vehicles[l];
+    setLight(l,'r'); updateLaneUI(l);
+  });
+  ['fixed-fixed','dyn-fixed','dyn-dyn'].forEach(m => {
+  sim.engines[m].initialQueue = LANES.reduce((a,l) => a + sim.engines[m].queue[l], 0);
+  });
+  renderAllQueues();
+  sim.running=true; sim.paused=false;
+  mainInterval=setInterval(tick,1000);
+  logEvent('Triple simulation started in parallel','info');
+  showSummaryModal();
+  document.getElementById('sysStatusTxt').textContent='TRIPLE SIM RUNNING';
+  document.getElementById('aiBadge').style.display='block';
+}
+
+function pauseSim() {
+  if(!sim.running) return;
+  sim.paused=!sim.paused;
+  logEvent(sim.paused?'Simulation paused':'Simulation resumed','info');
+}
+
+function resetSim() {
+  clearInterval(mainInterval);
+  sim.running=false; sim.paused=false; sim.emergency=null; sim.simTime=0;
+  
+  sim.engines['fixed-fixed']=makeEngine('fixed-fixed'); 
+  sim.engines['dyn-fixed']=makeEngine('dyn-fixed');
+  sim.engines['dyn-dyn']=makeEngine('dyn-dyn');
+  
+  sim.flowHistory=[];
+
+  LANES.forEach(l=>{
+    vehicles[l] = 0;
+    document.getElementById(`slider-${l}`).value = 0;
+
+    sim.engines['fixed-fixed'].queue[l]=0; 
+    sim.engines['dyn-fixed'].queue[l]=0;
+    sim.engines['dyn-dyn'].queue[l]=0;
+    
+    setLight(l,'r'); 
+    updateTimerRing(l,0,1); 
+    updateLaneUI(l);
+    document.getElementById(`q-${l}`).innerHTML='';
+    document.getElementById(`ov-${l}`).textContent='0';
+  });
+  updateSimTime();
+  document.getElementById('emgBanner').classList.remove('active');
+  document.getElementById('resumeBtn').classList.remove('visible');
+  LANES.forEach(l=>document.getElementById(`emg-${l}`).classList.remove('active'));
+  document.getElementById('sysStatusTxt').textContent='SYSTEM READY';
+  document.getElementById('aiTicker').textContent='SYSTEM READY — PRESS START TO BEGIN TRIPLE SIMULATION';
+  document.getElementById('aiBadge').style.display='none';
+  logEvent('System reset — all lanes cleared to zero','info');
+  
+  document.getElementById('leg-flow-ff').textContent='0'; 
+  document.getElementById('leg-flow-df').textContent='0';
+  document.getElementById('leg-flow-dd').textContent='0';
+  
+  updateCompTable(); drawCharts();
+}
+
+function setMode(mode) {
+  sim.displayMode=mode;
+  document.getElementById('btnFF').className='mode-btn'+(mode==='fixed-fixed'?' active-fixed-fixed':'');
+  document.getElementById('btnDF').className='mode-btn'+(mode==='dyn-fixed'?' active-dyn-fixed':'');
+  document.getElementById('btnDD').className='mode-btn'+(mode==='dyn-dyn'?' active-dyn-dyn':'');
+  
+  let txt = mode==='fixed-fixed' ? 'FIXED/FIXED' : mode==='dyn-fixed' ? 'DYN SEQ/FIXED 20s' : 'DYN SEQ/DYN 60s';
+  document.getElementById('modeBadge').textContent='VIEWING: ' + txt;
+  logEvent('Display switched to: '+txt+' engine view','info');
+  renderAllQueues();
+}
+
+function randomTraffic() {
+  LANES.forEach(l=>{
+    const v=Math.floor(Math.random()*110)+5; 
+    vehicles[l]=v;
+    document.getElementById(`slider-${l}`).value=v;
+    sim.engines['fixed-fixed'].queue[l]=v; 
+    sim.engines['dyn-fixed'].queue[l]=v;
+    sim.engines['dyn-dyn'].queue[l]=v;
+    updateLaneUI(l);
+  });
+  renderAllQueues(); logEvent('Random traffic generated','info');
+}
+
+function setPreset(type) {
+  const presets={
+    low: {N:5, S:8, E:6, W:10},
+    med: {N:35, S:40, E:45, W:30},
+    high: {N:90, S:85, E:110, W:100}
+  };
+  if(type==='rand'){randomTraffic();return;}
+  LANES.forEach(l=>{
+    vehicles[l]=presets[type][l];
+    document.getElementById(`slider-${l}`).value=presets[type][l];
+    sim.engines['fixed-fixed'].queue[l]=presets[type][l]; 
+    sim.engines['dyn-fixed'].queue[l]=presets[type][l];
+    sim.engines['dyn-dyn'].queue[l]=presets[type][l];
+    updateLaneUI(l);
+  });
+  renderAllQueues(); logEvent('Preset loaded: '+type.toUpperCase(),'info');
+}
+
+function triggerEmergency(lane) {
+  sim.emergency=lane; sim.paused=false; sim.emgTicks=0;
+  if(!sim.running){sim.running=true;mainInterval=setInterval(tick,1000);}
+  
+  LANES.forEach(l => setLight(l, 'r'));
+  spawnMovingCar(lane, '#ffffff', true);
+
+  document.getElementById('emgBanner').classList.add('active');
+  document.getElementById('resumeBtn').classList.add('visible');
+  LANES.forEach(l=>document.getElementById(`emg-${l}`).classList.remove('active'));
+  document.getElementById(`emg-${lane}`).classList.add('active');
+  updateTimerRing(lane,15,15);
+  document.getElementById('aiTicker').textContent=`⚠ EMERGENCY OVERRIDE — ${lane==='N'?'NORTH':lane==='S'?'SOUTH':lane==='E'?'EAST':'WEST'} LANE PRIORITY ⚠`;
+  document.getElementById('sysStatusTxt').textContent='⚠ EMERGENCY';
+  logEvent(`EMERGENCY OVERRIDE: ${lane} lane activated`,'emg');
+  let emgT=15;
+  const emgInterval=setInterval(()=>{
+    if(!sim.emergency){clearInterval(emgInterval);return;}
+    emgT--; updateTimerRing(lane,emgT,15);
+    if(emgT<=0){clearInterval(emgInterval);resumeFromEmergency();}
+  },1000);
+}
+
+function resumeFromEmergency() {
+  sim.emergency=null;
+  document.getElementById('emgBanner').classList.remove('active');
+  document.getElementById('resumeBtn').classList.remove('visible');
+  LANES.forEach(l=>{document.getElementById(`emg-${l}`).classList.remove('active');setLight(l,'r');});
+  document.getElementById('sysStatusTxt').textContent='TRIPLE SIM RUNNING';
+  updateAiTicker(); logEvent('Emergency resolved — triple simulation resumed','info');
+}
+function fmtSec(s) {
+  const m = Math.floor(s / 60), sec = s % 60;
+  return m > 0 ? `${m}m ${sec}s` : `${sec}s`;
+}
+
+function calcEstClearTime(mode, queues) {
+  const q = { ...queues };
+  const fixedTimes = { N: 120, S: 75, W: 60, E: 72 };
+  let totalTicks = 0;
+  let cleared = {};
+  LANES.forEach(l => cleared[l] = 0);
+
+  // Build one sequence of 4 lanes
+  let sequence = [];
+  if (mode === 'fixed-fixed') {
+    sequence = [...LANE_SEQ_FIXED]; // N, E, S, W — one pass
+  } else {
+    // dyn: sort by queue size descending for one sequence
+    sequence = [...LANES].sort((a, b) => q[b] - q[a]);
+  }
+
+  // Run through each lane once
+  sequence.forEach(lane => {
+    const duration = (mode === 'dyn-dyn')
+      ? Math.max(5, Math.min(180, 5 + q[lane]))
+      : fixedTimes[lane];
+
+    const canClear = Math.floor(duration / 2); // 1 car per 2 ticks
+    const actualCleared = Math.min(q[lane], canClear);
+    cleared[lane] = actualCleared;
+    q[lane] = Math.max(0, q[lane] - actualCleared);
+    totalTicks += duration;
+  });
+
+  return { ticks: totalTicks, remaining: q, cleared };
+}
+
+function showSummaryModal() {
+  const queues = {};
+  LANES.forEach(l => queues[l] = vehicles[l]);
+  const total = LANES.reduce((a, l) => a + queues[l], 0);
+  const fixedTimes = { N: 120, S: 75, W: 60, E: 72 };
+
+  ['ff', 'df', 'dd'].forEach(key => {
+    document.getElementById(`sum-total-${key}`).textContent = total;
+    LANES.forEach(l => {
+      document.getElementById(`sum-${l}-${key}`).textContent = queues[l] + ' vehicles';
+    });
+  });
+
+  // Green times per lane per mode
+  LANES.forEach(l => {
+    // fixed-fixed: always fixed time
+    document.getElementById(`sum-gt-${l}-ff`).textContent = fmtSec(fixedTimes[l]);
+    // dyn-fixed: same fixed duration but order depends on queue — still same green time
+    document.getElementById(`sum-gt-${l}-df`).textContent = fmtSec(fixedTimes[l]);
+    // dyn-dyn: dynamic based on queue size
+    const dynDur = Math.max(5, Math.min(180, 5 + queues[l]));
+    document.getElementById(`sum-gt-${l}-dd`).textContent = fmtSec(dynDur);
+  });
+
+  // Estimated clear times
+  const ctFF = calcEstClearTime('fixed-fixed', queues);
+  const ctDF = calcEstClearTime('dyn-fixed', queues);
+  const ctDD = calcEstClearTime('dyn-dyn', queues);
+
+  document.getElementById('sum-clrt-ff').textContent = fmtSec(ctFF);
+  document.getElementById('sum-clrt-df').textContent = fmtSec(ctDF);
+  document.getElementById('sum-clrt-dd').textContent = fmtSec(ctDD);
+
+  // Highlight best (lowest) clear time
+  const best = Math.min(ctFF, ctDF, ctDD);
+  ['ff','df','dd'].forEach(k => {
+    const el = document.getElementById(`sum-clrt-${k}`);
+    el.style.textShadow = '';
+  });
+  if (ctFF === best) document.getElementById('sum-clrt-ff').style.textShadow = '0 0 8px var(--cyan)';
+  if (ctDF === best) document.getElementById('sum-clrt-df').style.textShadow = '0 0 8px var(--yellow)';
+  if (ctDD === best) document.getElementById('sum-clrt-dd').style.textShadow = '0 0 8px var(--green)';
+
+  // Recommendation
+  const modeNames = { ff: 'Fixed/Fixed', df: 'Dyn/Fixed', dd: 'Dyn/Dyn' };
+  const bestKey = ctFF === best ? 'ff' : ctDF === best ? 'df' : 'dd';
+  const savings = { ff: ctFF, df: ctDF, dd: ctDD };
+  const secondBest = Object.entries(savings).filter(([k]) => k !== bestKey).sort((a,b) => a[1]-b[1])[0];
+  const savedSec = secondBest[1] - best;
+
+  document.getElementById('sum-recommendation').textContent =
+    `${modeNames[bestKey]} is projected to clear all vehicles ~${fmtSec(savedSec)} faster than the next best option ` +
+    `given current queue sizes (N:${queues.N} S:${queues.S} E:${queues.E} W:${queues.W}).`;
+
+  document.getElementById('summaryModal').style.display = 'flex';
+}
+
+function closeSummaryModal(e) {
+  if (e) e.stopPropagation();
+  document.getElementById('summaryModal').style.display = 'none';
+}
+window.addEventListener('load',()=>{
+  LANES.forEach(l=>{ updateLaneUI(l); 
+    sim.engines['fixed-fixed'].queue[l]=vehicles[l]; 
+    sim.engines['dyn-fixed'].queue[l]=vehicles[l];
+    sim.engines['dyn-dyn'].queue[l]=vehicles[l];
+    setLight(l,'r'); 
+  });
+  renderAllQueues(); setTimeout(initCharts,100);
+});
+window.addEventListener('resize',()=>setTimeout(initCharts,100));
+</script>
+</body>
+</html>
